@@ -3,6 +3,7 @@ import pandas as pd
 from src.ui.styles import inject_custom_css
 from src.ui.plots import plot_analysis_results
 from src.ui.components import render_header, render_metrics
+from src.ui.timeline import render_timeline_section
 from src.config import DEFAULT_TARGET_FREQ, DEFAULT_OTSU_MULTIPLIER, DEFAULT_BANDWIDTH
 import src.core.services as services
 
@@ -82,6 +83,9 @@ def render_app():
                     st.metric("감지된 대역폭 (Bandwidth)", f"{analysis_info['detected_bandwidth']:.2f} Hz", delta="Auto-Tuned")
                 with col2:
                     st.metric("가동 기준 (Silence Thresh)", f"{analysis_info['active_threshold']:.2f}", help="이 값 미만의 신호는 'Off' 상태로 간주하여 무시했습니다.")
+            
+            # New Timeline View
+            render_timeline_section(analysis_info)
         
         # Light Step (Cached via Service)
         anomalies_mask, final_thresh, anomaly_list = services.perform_light_analysis(
