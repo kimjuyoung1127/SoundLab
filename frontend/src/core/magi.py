@@ -1,18 +1,17 @@
 import numpy as np
 from numba import jit
 
-
 @jit(nopython=True, cache=True)
-def robust_goertzel_magi(samples, sample_rate, target_freq, bandwidth=1.0):
+def robust_goertzel_magi(samples: np.ndarray, sample_rate: int, target_freq: float, bandwidth: float = 1.0) -> float:
     """
-    Robust Goertzel algorithm considering Frequency Drift.
-    Extracts max energy within target_freq +/- bandwidth.
+    주파수 드리프트를 고려한 강력한 Goertzel 알고리즘.
+    target_freq +/- 대역폭(bandwidth) 내에서 최대 에너지를 추출합니다.
     """
     n_range = len(samples)
     max_magnitude = 0.0
     
-    # Scan frequencies: target - bandwidth, target, target + bandwidth
-    # Scanning at 0.5Hz steps for precision if needed, but for now 3 points as per PRD
+    # 주파수 스캔: 목표 - 대역폭, 목표, 목표 + 대역폭
+    # 필요하다면 정밀도를 위해 0.5Hz 단위로 스캔할 수 있지만, PRD에 따라 지금은 3포인트 스캔
     scan_freqs = np.array([target_freq - bandwidth, target_freq, target_freq + bandwidth])
     
     for f in scan_freqs:
@@ -26,9 +25,9 @@ def robust_goertzel_magi(samples, sample_rate, target_freq, bandwidth=1.0):
         q2 = 0.0
         
         for i in range(n_range):
-            # Applying Hanning Window logic implicitly or explicitly.
-            # Here assuming samples are already windowed or raw.
-            # If we need internal windowing for efficiency:
+            # Hanning 윈도우 로직을 암시적 또는 명시적으로 적용.
+            # 여기서는 샘플이 이미 윈도우 처리되었거나 원본이라고 가정.
+            # 효율성을 위해 내부 윈도우 처리가 필요한 경우:
             # val = samples[i] * (0.5 - 0.5 * np.cos(2 * np.pi * i / (n_range - 1)))
             val = samples[i] 
             q0 = coeff * q1 - q2 + val

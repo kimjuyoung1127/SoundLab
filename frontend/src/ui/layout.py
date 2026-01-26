@@ -1,12 +1,10 @@
 import streamlit as st
-import time
 import pandas as pd
-from src.core.audio import load_audio
-from src.core.analysis import process_signal_heavy, detect_anomalies_light
 from src.ui.styles import inject_custom_css
 from src.ui.plots import plot_analysis_results
 from src.ui.components import render_header, render_metrics
 from src.config import DEFAULT_TARGET_FREQ, DEFAULT_OTSU_MULTIPLIER, DEFAULT_BANDWIDTH
+import src.core.services as services
 
 def render_app():
     # 1. Setup
@@ -33,26 +31,23 @@ def render_app():
 
     # 3. Main Analysis Flow
     if uploaded_file:
-        start_time = time.time()
         
-        # Heavy Step (Cached)
+        # Heavy Step (Cached via Service)
         with st.spinner("🔄 신호 분석 및 데이터 처리 중... (초기 로딩)"):
-            sample_rate, data = load_audio(uploaded_file)
-            timestamps, magnitudes = process_signal_heavy(data, sample_rate, target_freq, bandwidth)
+            timestamps, magnitudes, heavy_proc_time = services.perform_heavy_analysis(
+                uploaded_file, target_freq, bandwidth
+            )
         
-        heavy_proc_time = (time.time() - start_time) * 1000
-        
-        # Light Step (Cached)
-        # This is fast so spinner might flicker, but good for feedback if it takes > 0.5s
-        anomalies_mask, final_thresh, anomaly_list = detect_anomalies_light(
+        # Light Step (Cached via Service)
+        anomalies_mask, final_thresh, anomaly_list = services.perform_light_analysis(
             timestamps, magnitudes, otsu_multiplier, manual_thresh
         )
         
         # 4. Rendering
         
-        # Top Metrics
-        # Mock memory usage for now, or use os.getprocessmemory if strictly needed
-        render_metrics(200, int(heavy_proc_time), len(anomaly_list))
+        # Top Metrics (1:1 Mapping: get_dashboard_metrics -> render_metrics)
+        metrics_data = services.get_dashboard_metrics(heavy_proc_time, len(anomaly_list))
+        render_metrics(metrics_data)
         
         # Main Plot
         st.plotly_chart(
