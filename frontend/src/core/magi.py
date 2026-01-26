@@ -42,3 +42,53 @@ def robust_goertzel_magi(samples: np.ndarray, sample_rate: int, target_freq: flo
             max_magnitude = mag
             
     return max_magnitude
+
+@jit(nopython=True, cache=True)
+def calculate_band_energy(samples: np.ndarray, sample_rate: int, center_freq: float, bandwidth: float, step: float = 0.5) -> float:
+    """
+    특정 대역폭 내의 주파수 에너지를 합산합니다 (V5.7 로직).
+    center_freq +/- bandwidth 범위 내에서 step 단위로 에너지를 계산하여 합산.
+    """
+    n_range = len(samples)
+    total_energy = 0.0
+    
+    # JS: for (let f = startF; f <= endF; f += 0.5)
+    start_f = center_freq - bandwidth
+    end_f = center_freq + bandwidth
+    
+    # Floating point loop manually
+    current_f = start_f
+    while current_f <= end_f + 1e-9:
+        # Single Frequency Magnitude (correlation)
+        # JS Logic: getMagnitude with step+=8 (Fast scan)
+        # We can implement full correlation or strided.
+        # Let's do full correlation for accuracy or stride to match JS speed?
+        # JS "step+=8" reduces samples by 8x. 
+        # Python Numba is fast, let's try stride=1 first (full accuracy).
+        # If too slow, we can increase stride.
+        
+        omega = (2 * np.pi * current_f) / sample_rate
+        
+        real = 0.0
+        imag = 0.0
+        
+        # Vectorized internal loop is harder in manual loop in numba?
+        # No, explicit loop is fast in numba.
+        # To match JS "Fast Scan" (step=8), let's use stride 8 if desired, 
+        # but for reliability let's use stride 4 or 1. 220k samples is manageable.
+        # User JS uses step 8.
+        
+        stride = 8 
+        for j in range(0, n_range, stride):
+            angle = omega * j
+            val = samples[j]
+            real += val * np.cos(angle)
+            imag += val * np.sin(angle)
+            
+        mag = np.sqrt(real*real + imag*imag) / (n_range / stride / 2) # Normalization (approx)
+        total_energy += mag
+        
+        current_f += step
+        
+    return total_energy
+

@@ -29,15 +29,16 @@ def get_dashboard_metrics(heavy_proc_time_ms: int, anomaly_count: int) -> Dict[s
         "anomalies_count": anomaly_count
     }
 
-def perform_heavy_analysis(uploaded_file, target_freq: float, bandwidth: float) -> Tuple[np.ndarray, np.ndarray, float]:
+def perform_heavy_analysis(uploaded_file, target_freq: float, bandwidth: float, smart_mode: bool = True) -> Tuple[np.ndarray, np.ndarray, float, Dict[str, Any]]:
     """
     Service wrapper for heavy signal processing.
-    Returns: timestamps, magnitudes, execution_time_ms
+    Returns: timestamps, magnitudes, execution_time_ms, analysis_info
     """
     start_time = time.time()
-    timestamps, magnitudes = process_signal_heavy(uploaded_file, target_freq, bandwidth)
+    # Updated to receive 3 values from process_signal_heavy
+    timestamps, magnitudes, analysis_info = process_signal_heavy(uploaded_file, target_freq, bandwidth, smart_mode)
     duration_ms = (time.time() - start_time) * 1000
-    return timestamps, magnitudes, duration_ms
+    return timestamps, magnitudes, duration_ms, analysis_info
 
 def perform_light_analysis(timestamps: np.ndarray, magnitudes: np.ndarray, otsu_multiplier: float, manual_thresh: Optional[float]) -> Tuple[Any, float, List[Dict]]:
     """

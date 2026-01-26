@@ -50,6 +50,9 @@ def render_app():
         )
         
         st.subheader("🔧 수동 제어")
+        # Smart Analysis Toggle (New Feature based on feedback)
+        smart_mode = st.toggle("🧠 스마트 분석 모드 (권장)", value=True, help="기계 가동(On) 구간 자동 감지, 대역폭지능형 튜닝, 상대 단위(%) 변환을 수행합니다.")
+        
         manual_mode = st.checkbox(
             "고정 임계값(Hard Threshold) 사용",
             help="자동 감지(Otsu 알고리즘) 대신, 사용자가 직접 정한 기준값으로 이상 여부를 판단합니다."
@@ -67,9 +70,18 @@ def render_app():
         
         # Heavy Step (Cached via Service)
         with st.spinner("🔄 신호 분석 및 데이터 처리 중... (초기 로딩)"):
-            timestamps, magnitudes, heavy_proc_time = services.perform_heavy_analysis(
-                uploaded_file, target_freq, bandwidth
+            timestamps, magnitudes, heavy_proc_time, analysis_info = services.perform_heavy_analysis(
+                uploaded_file, target_freq, bandwidth, smart_mode
             )
+            
+        # Display Smart Analysis Info
+        if smart_mode:
+            with st.expander("📊 스마트 분석 결과", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("감지된 대역폭 (Bandwidth)", f"{analysis_info['detected_bandwidth']:.2f} Hz", delta="Auto-Tuned")
+                with col2:
+                    st.metric("가동 기준 (Silence Thresh)", f"{analysis_info['active_threshold']:.2f}", help="이 값 미만의 신호는 'Off' 상태로 간주하여 무시했습니다.")
         
         # Light Step (Cached via Service)
         anomalies_mask, final_thresh, anomaly_list = services.perform_light_analysis(
@@ -97,22 +109,37 @@ def render_app():
             st.caption("💡 Shift(범위) 또는 Ctrl(개별) 키를 누른 채 클릭하면 **다중 선택**이 가능합니다.")
             
             df = pd.DataFrame(anomaly_list)
-            # Rename columns for display
-            df.columns = ["시간 (초)", "크기 (Magnitude)", "임계값 (Threshold)"]
+            
+            # Formatter for MM:SS
+            def format_time(seconds):
+                m = int(seconds // 60)
+                s = int(seconds % 60)
+                return f"{m:02d}:{s:02d}"
+
+            # Apply formatting for display (Keep original for logic if needed, but here we just display)
+            # We add a display column
+            df["발생 시각"] = df["timestamp"].apply(format_time)
+            
+            # Select and Rename columns for display
+            display_df = df[["발생 시각", "magnitude", "threshold"]].copy()
+            display_df.columns = ["발생 시각 (MM:SS)", "신호 강도 (%)", "가동 임계값 (%)"]
             
             # Interactive Dataframe (Multi-Select Enabled)
             event = st.dataframe(
-                df, 
+                display_df, 
                 use_container_width=True,
                 on_select="rerun",
-                selection_mode="multi-row"
+                selection_mode="multi-row",
+                hide_index=True
             )
             
             # Capture selection (List of timestamps)
             if event.selection.rows:
                 st.caption(f"✅ {len(event.selection.rows)}개 항목 선택됨")
                 for idx in event.selection.rows:
-                    ts = df.iloc[idx]["시간 (초)"]
+                    # Map back to original timestamp using index
+                    # Note: display_df and df have same index
+                    ts = df.iloc[idx]["timestamp"]
                     highlight_timestamps.append(ts)
         
         # Render Plot into Placeholder (Multi-Highlight)
