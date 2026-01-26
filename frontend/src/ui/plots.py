@@ -1,10 +1,13 @@
 import plotly.graph_objects as go
 from src.config import COLOR_PRIMARY, COLOR_ANOMALY_RED, COLOR_ACCENT_CYAN
 
-def plot_analysis_results(timestamps, magnitudes, threshold, anomalies):
+def plot_analysis_results(timestamps, magnitudes, threshold, anomalies, highlight_timestamps=None):
     """
     Renders time-series data using WebGL (scattergl) for performance.
+    Args:
+        highlight_timestamps (list, optional): List of timestamps to highlight.
     """
+    # Force reload trigger
     fig = go.Figure()
     
     # 1. Main Signal Line (WebGL)
@@ -55,6 +58,22 @@ def plot_analysis_results(timestamps, magnitudes, threshold, anomalies):
                 line=dict(width=2)
             )
         ))
+        
+    # 4. Interactive Highlights (Multi-Select)
+    if highlight_timestamps:
+        # Ensure it's a list (handle single value edge case if passed incorrectly)
+        if not isinstance(highlight_timestamps, list):
+            highlight_timestamps = [highlight_timestamps]
+            
+        for t in highlight_timestamps:
+            fig.add_vline(
+                x=t, 
+                line_width=2, 
+                line_dash="dot", 
+                line_color="yellow"
+            )
+            # Optional: Add specific annotation for each, or just the line to avoid clutter
+            # For now, let's skip individual text labels to prevent overlap mess
 
     # Layout styling to match "App Dark"
     fig.update_layout(
