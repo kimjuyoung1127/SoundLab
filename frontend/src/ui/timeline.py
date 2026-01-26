@@ -14,7 +14,7 @@ def render_timeline_section(analysis_info: Dict[str, Any]):
         return
 
     st.markdown("---")
-    st.subheader("⚙️ 가동 시간 분석 (Operation Cycles)")
+    st.subheader("📊 신호 감지 타임라인 (Signal Detection Timeline)")
     
     # 2. Aggregate Segments (Consecutive ON chunks)
     segments = []
@@ -47,7 +47,7 @@ def render_timeline_section(analysis_info: Dict[str, Any]):
         segments.append(current_segment)
         
     if not segments:
-        st.info("⚠️ 감지된 가동 구간이 없습니다. (No Active Cycles Detected)")
+        st.info("⚠️ 유효 신호가 감지되지 않았습니다. (No Valid Signals Detected)")
         return
 
     # 3. Metrics
@@ -66,12 +66,15 @@ def render_timeline_section(analysis_info: Dict[str, Any]):
         return f"{sec}초"
     
     m1, m2, m3 = st.columns(3)
-    m1.metric("총 가동 시간", fmt_dur(total_duration_sec))
-    m2.metric("가동 횟수 (Cycles)", f"{cycle_count}회")
+    m1.metric("누적 지속 시간", fmt_dur(total_duration_sec))
+    m2.metric("감지 횟수 (Segments)", f"{cycle_count}회")
     
     if segments:
         avg_dur = total_duration_sec / len(segments)
-        m3.metric("평균 가동 시간", fmt_dur(avg_dur))
+        # m3.metric("평균 지속 시간", fmt_dur(avg_dur))
+        # User Feedback: Don't imply machine cycles easily. 
+        # Maybe show status instead?
+        m3.metric("평균 지속 시간", fmt_dur(avg_dur))
     
     # 4. Timeline Chart (Gantt via Barh)
     fig = go.Figure()
@@ -86,18 +89,18 @@ def render_timeline_section(analysis_info: Dict[str, Any]):
         start_time = seg['start']
         end_time = seg['end']
         
-        label_text = f"Run {i+1}<br>{fmt_time(start_time)}~{fmt_time(end_time)}"
+        label_text = f"Seg {i+1}<br>{fmt_time(start_time)}~{fmt_time(end_time)}"
         
         fig.add_trace(go.Bar(
-            y=["Machine State"],
+            y=["Signal State"],
             x=[duration],
             base=[start_time],
             orientation='h',
-            name=f"Run {i+1}",
+            name=f"Seg {i+1}",
             marker_color=colors[i % 2],
-            text=f"Run #{i+1}",
+            text=f"#{i+1}",
             textposition='auto',
-            hovertemplate=f"<b>Cycle #{i+1}</b><br>Start: {fmt_time(start_time)}<br>End: {fmt_time(end_time)}<br>Duration: {fmt_dur(duration)}<extra></extra>",
+            hovertemplate=f"<b>Segment #{i+1}</b><br>Start: {fmt_time(start_time)}<br>End: {fmt_time(end_time)}<br>Duration: {fmt_dur(duration)}<extra></extra>",
             showlegend=False
         ))
         
@@ -107,7 +110,7 @@ def render_timeline_section(analysis_info: Dict[str, Any]):
     # For simplicity, keep seconds but add title.
     
     fig.update_layout(
-        title="가동 타임라인 (Timeline)",
+        title="신호 감지 타임라인 (Timeline)",
         xaxis_title="시간 (초)",
         yaxis_title="",
         height=180,
@@ -122,11 +125,12 @@ def render_timeline_section(analysis_info: Dict[str, Any]):
     st.plotly_chart(fig, use_container_width=True)
     
     # 5. Data Table (Structured)
-    with st.expander("📋 상세 가동 이력 (Cycle Details)", expanded=True):
+    with st.expander("📋 감지 구간 상세 (Segment Details)", expanded=True):
+        st.info("💡 **Tip**: 기계는 계속 켜져있는데 횟수가 너무 많다면, '스마트 분석'이 조용한 구간을 '꺼짐'으로 판단했을 수 있습니다.")
         table_data = []
         for i, seg in enumerate(segments):
             table_data.append({
-                "Cycle": f"#{i+1}",
+                "ID": f"#{i+1}",
                 "시작 시각": fmt_time(seg['start']),
                 "종료 시각": fmt_time(seg['end']),
                 "지속 시간": fmt_dur(seg['end'] - seg['start'])
