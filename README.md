@@ -51,9 +51,16 @@ SoundLab은 전통적인 신호 처리 이론과 현대적인 JIT 컴파일 기�
 고사양 분석이 필요한 경우 로컬 설치를 권장합니다. 상세 가이드는 [설치 가이드(docs/installation_guide.md)](docs/installation_guide.md)를 참고하세요.
 
 ```bash
-# 빠른 실행
+# 1. 가상환경 생성 및 활성화
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# 2. 의존성 설치 및 실행
 pip install -r requirements.txt
-streamlit run src/main.py
+streamlit run src/main.py         
 ```
 
 ### 2. 웹 배포 (팀 공유용)
