@@ -10,9 +10,22 @@ def plot_analysis_results(timestamps, magnitudes, threshold, anomalies, highligh
     # Force reload trigger
     fig = go.Figure()
     
+    # 0. Convert timestamps to datetime for MM:SS formatting through Plotly
+    # We use a dummy date (e.g., today) to represent duration as time of day
+    import pandas as pd
+    
+    # If timestamps are empty, skip
+    if len(timestamps) == 0:
+        return fig
+    
+    # Create datetime objects relative to a base date. 
+    # This allows Plotly to format "0" as "00:00:00" and "305" as "00:05:05"
+    # We use a fixed reference date so time is consistent.
+    t_pd = pd.to_datetime(timestamps, unit='s', origin='unix')
+    
     # 1. Main Signal Line (WebGL)
     fig.add_trace(go.Scattergl(
-        x=timestamps,
+        x=t_pd,
         y=magnitudes,
         mode='lines',
         name='Signal Energy',
@@ -25,14 +38,14 @@ def plot_analysis_results(timestamps, magnitudes, threshold, anomalies, highligh
     if len(timestamps) > 0:
         fig.add_shape(
             type="line",
-            x0=timestamps[0],
+            x0=t_pd[0],
             y0=threshold,
-            x1=timestamps[-1],
+            x1=t_pd[-1],
             y1=threshold,
             line=dict(color=COLOR_ACCENT_CYAN, width=1, dash="dash"),
         )
         fig.add_annotation(
-            x=timestamps[0],
+            x=t_pd[0],
             y=threshold,
             text=f"Threshold: {threshold:.2f}",
             showarrow=False,
@@ -43,7 +56,7 @@ def plot_analysis_results(timestamps, magnitudes, threshold, anomalies, highligh
     # 3. Anomaly Markers (WebGL)
     # Filter only anomalies for plotting
     if len(timestamps) > 0 and anomalies.any():
-        anomaly_times = timestamps[anomalies]
+        anomaly_times = t_pd[anomalies]
         anomaly_mags = magnitudes[anomalies]
         
         fig.add_trace(go.Scattergl(
@@ -65,15 +78,14 @@ def plot_analysis_results(timestamps, magnitudes, threshold, anomalies, highligh
         if not isinstance(highlight_timestamps, list):
             highlight_timestamps = [highlight_timestamps]
             
-        for t in highlight_timestamps:
+        highlight_pd = pd.to_datetime(highlight_timestamps, unit='s', origin='unix')
+        for t in highlight_pd:
             fig.add_vline(
                 x=t, 
                 line_width=2, 
                 line_dash="dot", 
                 line_color="yellow"
             )
-            # Optional: Add specific annotation for each, or just the line to avoid clutter
-            # For now, let's skip individual text labels to prevent overlap mess
 
     # Layout styling to match "App Dark"
     fig.update_layout(
@@ -82,9 +94,11 @@ def plot_analysis_results(timestamps, magnitudes, threshold, anomalies, highligh
         plot_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=40, r=40, t=40, b=40),
         xaxis=dict(
-            title="Time (s)", 
+            title="Time (MM:SS)", 
             showgrid=True, 
-            gridcolor='rgba(255,255,255,0.1)'
+            gridcolor='rgba(255,255,255,0.1)',
+            tickformat="%M:%S", # Force Minute:Second format
+            hoverformat="%M:%S"
         ),
         yaxis=dict(
             title="Magnitude (dB-ish)", 

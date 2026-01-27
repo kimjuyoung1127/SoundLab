@@ -5,6 +5,7 @@ from src.core.magi import robust_goertzel_magi, calculate_band_energy
 from src.config import DEFAULT_WINDOW_SIZE_SEC
 from skimage.filters import threshold_otsu
 from src.core.audio import load_audio
+from scipy.signal import welch, find_peaks
 
 # --- V5.7 Configuration ---
 CHUNK_DURATION_SEC = 5.0
@@ -230,8 +231,12 @@ def process_signal_heavy(uploaded_file: Any, target_freq: float, bandwidth: floa
          final_magnitudes_processed = (final_magnitudes_processed / energies_id.max()) * 100.0
          
     # Info update
+    max_energy = energies_id.max() if len(energies_id) > 0 else 1.0
+    threshold_pct = (THRESHOLD_ID / max_energy) * 100.0 if max_energy > 0 else 0.0
+    
     analysis_info = {
         "active_threshold": THRESHOLD_ID,
+        "threshold_pct": threshold_pct,
         "detected_bandwidth": ID_BW,
         "smart_mode": smart_mode,
         "v5_results": results, # Store full results for advanced usage
@@ -276,3 +281,71 @@ def detect_anomalies_light(timestamps: np.ndarray, magnitudes: np.ndarray, otsu_
             })
             
     return anomalies, final_thresh, results
+
+@st.cache_data(show_spinner="전체 스펙트럼 분석 중 (Spectrum Analysis)...")
+def calculate_spectral_stats(uploaded_file: Any, top_n: int = 5) -> Tuple[np.ndarray, np.ndarray, List[Dict[str, float]]]:
+    """
+    Welch 방법을 사용하여 PSD(Power Spectral Density)를 계산하고 주요 피크를 찾습니다.
+    대용량 파일도 효율적으로 처리합니다.
+    """
+    # 1. Load Audio
+    # mmap 모드로 로드되더라도 welch 함수는 잘 처리합니다.
+    sample_rate, signal = load_audio(uploaded_file)
+    
+    # Mono Conversion using mean effectively
+    if len(signal.shape) > 1:
+        signal = signal.mean(axis=1)
+        
+    # 데이터가 비어있는 경우 처리
+    if len(signal) == 0:
+        return np.array([]), np.array([]), []
+
+    # 2. Welch's Method Optimization
+    # nperseg를 조절하여 주파수 해상도를 결정합니다.
+    # 목표: 60Hz 대역에서 0.5Hz~1Hz 정도의 해상도를 확보하려면
+    # delta_f = fs / nperseg
+    # 1.0 Hz = 44100 / nperseg  => nperseg ~= 44100
+    # 2^15 = 32768 (약 1.3Hz 해상도 @ 44.1kHz)
+    # 2^16 = 65536 (약 0.67Hz 해상도 @ 44.1kHz) -> 정밀도 위해 선택
+    
+    nperseg = 65536
+    if len(signal) < nperseg:
+        nperseg = len(signal)
+    
+    # 메모리 절약을 위해 float32로 변환 후 처리 (선택사항이나 numpy가 알아서 함)
+    # welch는 평균화된 FFT 결과를 주므로 전체 FFT보다 메모리 효율적입니다.
+    freqs, psd = welch(signal, fs=sample_rate, nperseg=nperseg)
+    
+    # 3. Find Peaks
+    # height: 잡음 바닥보다 높은 것만 (최대값의 1% 이상)
+    # prominence: 주변보다 뚜렷하게 솟은 것 (최대값의 5% 이상)
+    # distance: 10Hz 이상 떨어진 피크만 (해상도 0.67Hz 기준 약 15칸)
+    
+    max_power = np.max(psd)
+    peaks, properties = find_peaks(
+        psd, 
+        height=max_power * 0.01, 
+        prominence=max_power * 0.05, 
+        distance=int(10 / (sample_rate / nperseg)) # 최소 10Hz 간격
+    )
+    
+    peak_freqs = freqs[peaks]
+    peak_heights = properties['peak_heights']
+    
+    # 높이 순 정렬
+    sorted_indices = np.argsort(peak_heights)[::-1]
+    top_indices = sorted_indices[:top_n]
+    
+    top_peaks = []
+    for idx in top_indices:
+        f_val = float(peak_freqs[idx])
+        p_val = float(peak_heights[idx])
+        
+        # 주파수 범위 추정 (Full Width at Half Maximum 유사하게)
+        # 간단히 중심 주파수 반환
+        top_peaks.append({
+            'freq': f_val,
+            'power': p_val
+        })
+        
+    return freqs, psd, top_peaks
