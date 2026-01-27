@@ -40,8 +40,8 @@ def perform_heavy_analysis(uploaded_file, target_freq: float, bandwidth: float, 
     duration_ms = (time.time() - start_time) * 1000
     return timestamps, magnitudes, duration_ms, analysis_info
 
-def perform_light_analysis(timestamps: np.ndarray, magnitudes: np.ndarray, otsu_multiplier: float, manual_thresh: Optional[float]) -> Tuple[Any, float, List[Dict]]:
+def perform_light_analysis(timestamps: np.ndarray, magnitudes: np.ndarray, otsu_multiplier: float, manual_thresh: Optional[float], v5_results: Optional[List[Dict[str, Any]]] = None) -> Tuple[Any, float, List[Dict]]:
     """
     Service wrapper for light analysis (thresholding).
     """
-    return detect_anomalies_light(timestamps, magnitudes, otsu_multiplier, manual_thresh)
+    return detect_anomalies_light(timestamps, magnitudes, otsu_multiplier, manual_thresh, v5_results)

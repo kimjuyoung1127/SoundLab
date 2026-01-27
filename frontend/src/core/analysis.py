@@ -248,9 +248,11 @@ def process_signal_heavy(uploaded_file: Any, target_freq: float, bandwidth: floa
 # --- 레벨 2: 가벼운 연산 (판단 로직) ---
 # 슬라이더가 변경될 때 빠르게 재실행됩니다.
 @st.cache_data(show_spinner="임계값 적용 중 (Light)...")
-def detect_anomalies_light(timestamps: np.ndarray, magnitudes: np.ndarray, otsu_multiplier: float, manual_threshold: Optional[float] = None) -> Tuple[np.ndarray, float, List[Dict[str, float]]]:
+def detect_anomalies_light(timestamps: np.ndarray, magnitudes: np.ndarray, otsu_multiplier: float, manual_threshold: Optional[float] = None, v5_results: Optional[List[Dict[str, Any]]] = None) -> Tuple[np.ndarray, float, List[Dict[str, float]]]:
     """
     Otsu 임계값과 승수를 적용하여 이상징후를 감지합니다.
+    단, v5_results가 제공되면 'ON' 상태인 구간에서만 감지합니다. (Single Source of Truth)
+    
     반환값:
         anomalies (np.ndarray): 이상징후 불리언 마스크.
         final_thresh (float): 계산된 임계값.
@@ -265,10 +267,18 @@ def detect_anomalies_light(timestamps: np.ndarray, magnitudes: np.ndarray, otsu_
         try:
             otsu_val = threshold_otsu(magnitudes)
         except:
-             otsu_val = 0.0 # 빈 데이터 또는 균일한 데이터 처리
+            otsu_val = 0.0 # 빈 데이터 또는 균일한 데이터 처리
         final_thresh = otsu_val * otsu_multiplier
     
+    # 1. Base Anomaly Detection (Threshold crossing)
     anomalies = magnitudes > final_thresh
+    
+    # 2. Filter by Machine State (If v5_results provided)
+    if v5_results is not None and len(v5_results) == len(anomalies):
+        # Create a boolean mask for 'ON' state
+        # Assuming v5_results matches timestamps 1:1
+        on_mask = np.array([r['state'] == 'ON' for r in v5_results])
+        anomalies = anomalies & on_mask
     
     # UI용 결과 포맷팅
     results = []

@@ -66,8 +66,8 @@ def render_timeline_section(analysis_info: Dict[str, Any]):
         return f"{sec}초"
     
     m1, m2, m3 = st.columns(3)
-    m1.metric("누적 지속 시간", fmt_dur(total_duration_sec))
-    m2.metric("감지 횟수 (Segments)", f"{cycle_count}회")
+    m1.metric("총 가동 시간 (Total Runtime)", fmt_dur(total_duration_sec))
+    m2.metric("가동 사이클 (Operation Cycles)", f"{cycle_count}회")
     
     if segments:
         avg_dur = total_duration_sec / len(segments)

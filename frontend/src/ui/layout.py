@@ -105,8 +105,10 @@ def render_app():
                 render_timeline_section(analysis_info)
             
             # Light Step (Cached via Service)
+            # Pass v5_results to filter anomalies by "ON" state
+            v5_results = analysis_info.get("v5_results")
             anomalies_mask, final_thresh, anomaly_list = services.perform_light_analysis(
-                timestamps, magnitudes, otsu_multiplier, manual_thresh
+                timestamps, magnitudes, otsu_multiplier, manual_thresh, v5_results
             )
             
             # 4. Rendering
@@ -126,8 +128,8 @@ def render_app():
             highlight_timestamps = []
             
             if anomaly_list:
-                st.subheader("📋 이상징후 탐지 로그 (클릭하여 차트 강조)")
-                st.caption("💡 Shift(범위) 또는 Ctrl(개별) 키를 누른 채 클릭하면 **다중 선택**이 가능합니다.")
+                st.subheader("⚡ 가동 중 주요 고점(Peak) 이벤트 로그")
+                st.caption("💡 기계가 **가동 중(ON)**인 상태에서 발생한 주요 에너지 급증 구간입니다.")
                 
                 df = pd.DataFrame(anomaly_list)
                 
@@ -143,7 +145,7 @@ def render_app():
                 
                 # Select and Rename columns for display
                 display_df = df[["발생 시각", "magnitude", "threshold"]].copy()
-                display_df.columns = ["발생 시각 (MM:SS)", "신호 강도 (%)", "가동 임계값 (%)"]
+                display_df.columns = ["발생 시각 (MM:SS)", "신호 레벨 (%)", "가동 임계값 (%)"]
                 
                 # Interactive Dataframe (Multi-Select Enabled)
                 event = st.dataframe(
