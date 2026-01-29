@@ -10,7 +10,7 @@ import src.core.services as services
 
 def render_app():
     # 1. Setup
-    st.set_page_config(page_title="SignalCraft Light-Lab", layout="wide", page_icon="📡")
+    st.set_page_config(page_title="SignalCraft Lab", layout="wide", page_icon="📡")
     inject_custom_css()
     
     # 2. Sidebar Controls
@@ -62,7 +62,7 @@ def render_app():
             help="값이 낮을수록 작은 신호도 '이상징후'로 민감하게 반응합니다. (기본값: 1.5)"
         )
         
-        with st.expander("⚙️ 고급 설정 (Advanced Settings)", expanded=False):
+        with st.expander("⚙️ 고급 설정", expanded=False):
             # Bandwidth removed (Auto-set to 2.0 internall)
             st.caption("대역폭은 내부적으로 최적화된 값(2.0Hz)을 사용합니다.")
             

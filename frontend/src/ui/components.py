@@ -5,8 +5,7 @@ def render_header():
     with col1:
         st.markdown("## 📡")
     with col2:
-        st.markdown("### SignalCraft Light-Lab")
-        st.caption("v2.4 Independent R&D Build (Global)")
+        st.markdown("### SignalCraft Lab")
     st.divider()
 
 def render_metrics(data):
