@@ -46,7 +46,7 @@ pip install -r requirements.txt
 설치가 완료되면 다음 명령어로 분석 도구를 실행합니다.
 
 ```bash
-streamlit run frontend/src/main.py
+python -m streamlit run src/main.py
 ```
 
 브라우저가 자동으로 열리며 `http://localhost:8501` 주소로 접속됩니다.
