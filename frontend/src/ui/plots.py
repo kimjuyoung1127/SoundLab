@@ -87,19 +87,29 @@ def plot_analysis_results(timestamps, magnitudes, threshold, anomalies, highligh
                 line_color="yellow"
             )
 
+    # --- Dynamic Focus (Auto-Zoom on Anomalies) ---
+    xaxis_config = dict(
+        title="Time (MM:SS)", 
+        showgrid=True, 
+        gridcolor='rgba(255,255,255,0.1)',
+        tickformat="%M:%S",
+        hoverformat="%M:%S",
+        nticks=10 # Prevent label crowding
+    )
+
+    if anomalies.any():
+        anomaly_times = t_pd[anomalies]
+        t_start = anomaly_times.min() - pd.Timedelta(seconds=5)
+        t_end = anomaly_times.max() + pd.Timedelta(seconds=5)
+        xaxis_config['range'] = [t_start, t_end]
+
     # Layout styling to match "App Dark"
     fig.update_layout(
         template="plotly_dark",
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=40, r=40, t=40, b=40),
-        xaxis=dict(
-            title="Time (MM:SS)", 
-            showgrid=True, 
-            gridcolor='rgba(255,255,255,0.1)',
-            tickformat="%M:%S", # Force Minute:Second format
-            hoverformat="%M:%S"
-        ),
+        xaxis=xaxis_config,
         yaxis=dict(
             title="Magnitude (dB-ish)", 
             showgrid=True, 
@@ -171,12 +181,43 @@ def plot_live_trend(time_labels, magnitudes, threshold, state_history=None):
                 text=anomaly_hover,
                 hoverinfo='text',
                 marker=dict(
-                    size=10,
+                    size=12, # Slightly larger for better targeting
                     color=COLOR_ANOMALY_RED,
                     symbol='circle',
                     line=dict(width=1, color="white")
+                ),
+                hoverlabel=dict(
+                    bgcolor=COLOR_ANOMALY_RED,
+                    font_size=16,
+                    font_family="Inter, sans-serif",
+                    font_color="white",
+                    bordercolor="white"
                 )
             ))
+
+    # --- Dynamic Focus (Auto-Zoom on Anomalies) ---
+    xaxis_config = dict(
+        title="시간", 
+        showgrid=True, 
+        gridcolor='rgba(255,255,255,0.05)',
+        tickangle=-30,
+        automargin=True,
+        nticks=10,
+        # Spikes for "Targeting" feel
+        showspikes=True,
+        spikemode='across',
+        spikesnap='cursor',
+        spikedash='dot',
+        spikecolor=COLOR_PRIMARY,
+        spikethickness=1
+    )
+
+    if state_history and 'ON' in state_history:
+        on_indices = [i for i, s in enumerate(state_history) if s == 'ON']
+        # Zoom into the range from 5 points before the first ON to 5 points after the last ON
+        start_idx = max(0, on_indices[0] - 5)
+        end_idx = min(len(time_labels) - 1, on_indices[-1] + 5)
+        xaxis_config['range'] = [time_labels[start_idx], time_labels[end_idx]]
 
     # Layout styling with Improved Readability
     fig.update_layout(
@@ -185,15 +226,9 @@ def plot_live_trend(time_labels, magnitudes, threshold, state_history=None):
         plot_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=50, r=20, t=20, b=60),
         height=400,
-        xaxis=dict(
-            title="Timestamp (HH:MM:SS)", 
-            showgrid=True, 
-            gridcolor='rgba(255,255,255,0.05)',
-            tickangle=-30, # Angle the time labels for better fit
-            automargin=True
-        ),
+        xaxis=xaxis_config,
         yaxis=dict(
-            title="Signal Magnitude", 
+            title="신호레벨", 
             showgrid=True, 
             gridcolor='rgba(255,255,255,0.05)',
             zeroline=False
