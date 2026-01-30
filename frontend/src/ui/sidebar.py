@@ -23,7 +23,7 @@ def render_sidebar():
                               ["📁 파일 업로드", "📡 실시간 감지 "], 
                               horizontal=True)
         
-        is_live_mode = "Live" in data_source
+        is_live_mode = "실시간 감지" in data_source
         uploaded_file = None
 
         if is_live_mode:
