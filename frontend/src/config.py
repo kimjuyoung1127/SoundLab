@@ -1,13 +1,13 @@
 
 # SignalCraft Light-Lab Configuration
 
-# Colors
-COLOR_PRIMARY = "#00BFFF"
-COLOR_ACCENT_CYAN = "#00FFFF"
-COLOR_ANOMALY_RED = "#E57373"
-COLOR_BACKGROUND_DARK = "#0B141D"
-COLOR_APP_DARK = "#0E1117"
-COLOR_PANEL_DARK = "#161b22"
+# Colors (Eye-friendly palette)
+COLOR_PRIMARY = "#4ECDC4"         # Soft Teal for Signal
+COLOR_ACCENT_CYAN = "#A8E6CF"      # Mint for Threshold
+COLOR_ANOMALY_RED = "#FF6B6B"      # Coral Red for Anomalies
+COLOR_BACKGROUND_DARK = "#1A1A1D"  # Deep Charcoal
+COLOR_APP_DARK = "#0F0F12"         # Rich Black
+COLOR_PANEL_DARK = "#25252B"       # Soft Steel
 
 # Defaults
 DEFAULT_SAMPLE_RATE = 44100

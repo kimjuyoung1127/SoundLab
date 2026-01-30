@@ -14,6 +14,18 @@ CONF_SURGE_60 = {'freq': 60.0, 'bw': 2.0}
 CONF_SURGE_120 = {'freq': 120.0, 'bw': 2.0}
 CONF_DIAG = {'freq': 180.0, 'bw': 2.0}
 
+def calculate_otsu_threshold(data: np.ndarray, sensitivity: float = 1.0) -> float:
+    """
+    Calculates the Otsu threshold for a given 1D array.
+    Applies the sensitivity multiplier.
+    Returns 0.0 if data is empty or uniform.
+    """
+    try:
+        otsu_val = threshold_otsu(data)
+    except:
+        otsu_val = 0.0
+    return otsu_val * sensitivity
+
 @st.cache_data(show_spinner="Smart Analyzer V5.7 분석 중...")
 def process_signal_heavy(uploaded_file: Any, target_freq: float, bandwidth: float, smart_mode: bool = True) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """
